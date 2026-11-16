@@ -2,7 +2,7 @@
 create table if not exists public.professional_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null check (char_length(display_name) between 2 and 100),
-  profession text not null check (profession in ('videographer','editor')),
+  profession text not null check (profession in ('videographer','photographer','editor')),
   country text not null default '' check (char_length(country) <= 100),
   city text not null default '' check (char_length(city) <= 100),
   bio text not null default '' check (char_length(bio) <= 1500),
@@ -14,6 +14,13 @@ create table if not exists public.professional_profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Actualizar también instalaciones existentes: CREATE TABLE IF NOT EXISTS no modifica constraints previas.
+alter table public.professional_profiles
+  drop constraint if exists professional_profiles_profession_check;
+alter table public.professional_profiles
+  add constraint professional_profiles_profession_check
+  check (profession in ('videographer','photographer','editor'));
+
 alter table public.professional_profiles enable row level security;
 revoke all on public.professional_profiles from anon, authenticated;
 grant select, insert, update, delete on public.professional_profiles to authenticated;
