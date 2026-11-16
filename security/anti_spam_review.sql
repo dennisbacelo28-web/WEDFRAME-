@@ -18,8 +18,9 @@ begin
         and created_at > now() - interval '10 minutes') then
     raise exception 'Espera unos minutos antes de volver a contactar con este profesional';
   end if;
+  new.created_at := now();
   return new;
-end; $$;
+end; $;
 drop trigger if exists wf_limit_quote_requests_insert on public.quote_requests;
 create trigger wf_limit_quote_requests_insert before insert on public.quote_requests
 for each row execute function public.wf_limit_quote_requests();
@@ -34,8 +35,9 @@ begin
       where sender_id = new.sender_id and created_at > now() - interval '10 seconds') >= 3 then
     raise exception 'Estás enviando mensajes demasiado rápido. Inténtalo más tarde';
   end if;
+  new.created_at := now();
   return new;
-end; $$;
+end; $;
 drop trigger if exists wf_limit_quote_messages_insert on public.quote_messages;
 create trigger wf_limit_quote_messages_insert before insert on public.quote_messages
 for each row execute function public.wf_limit_quote_messages();
