@@ -20,7 +20,7 @@ begin
   end if;
   new.created_at := now();
   return new;
-end; $;
+end; $$;
 drop trigger if exists wf_limit_quote_requests_insert on public.quote_requests;
 create trigger wf_limit_quote_requests_insert before insert on public.quote_requests
 for each row execute function public.wf_limit_quote_requests();
@@ -37,7 +37,7 @@ begin
   end if;
   new.created_at := now();
   return new;
-end; $;
+end; $$;
 drop trigger if exists wf_limit_quote_messages_insert on public.quote_messages;
 create trigger wf_limit_quote_messages_insert before insert on public.quote_messages
 for each row execute function public.wf_limit_quote_messages();
