@@ -1,13 +1,14 @@
 // WEDFRAME · Limpieza de archivos huérfanos
 // Borra fotos y vídeos de los buckets de portfolio que ya no están
-// enlazados a ningún trabajo (tabla portfolio_videos) y tienen más de 24 h.
+// enlazados a ningún trabajo (tabla portfolio_videos), y fotos de perfil que
+// ya no usa ningún perfil, siempre que tengan más de 24 h.
 // No recibe parámetros: aunque alguien la llame, solo puede borrar
 // archivos que ya no usa nadie.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const URL_BASE = Deno.env.get("SUPABASE_URL")!;
 const sb = createClient(URL_BASE, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-const BUCKETS = ["wedframe-videos", "wedframe-gallery"];
+const BUCKETS = ["wedframe-videos", "wedframe-gallery", "wedframe-avatars"];
 const MIN_AGE_MS = 24 * 60 * 60 * 1000;
 
 Deno.serve(async () => {
@@ -17,6 +18,15 @@ Deno.serve(async () => {
   for (const r of rows ?? []) {
     const m = String(r.video_url ?? "").match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+?)(?:[?#].*)?$/);
     if (m) used.add(`${m[1]}/${decodeURIComponent(m[2])}`);
+  }
+  const { data: profs, error: pErr } = await sb.from("professional_profiles").select("avatar_path");
+  if (pErr) return new Response(JSON.stringify({ error: "db" }), { status: 500 });
+  for (const p of profs ?? []) if (p.avatar_path) used.add(`wedframe-avatars/${p.avatar_path}`);
+  for (let page = 1; page < 50; page++) {
+    const { data: lu, error: uErr } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+    if (uErr) return new Response(JSON.stringify({ error: "auth" }), { status: 500 });
+    for (const u of lu.users) { const a = u.user_metadata?.avatar_path; if (a) used.add(`wedframe-avatars/${a}`); }
+    if (lu.users.length < 1000) break;
   }
   const isUsed = (bucket: string, name: string) =>
     used.has(`${bucket}/${name}`) || used.has(`${bucket}/${name.replace(/\.part\d+$/, ".part0")}`);
